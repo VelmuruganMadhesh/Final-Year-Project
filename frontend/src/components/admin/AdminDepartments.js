@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api/axios';
+import axios from 'axios';
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
 
 const AdminDepartments = () => {
@@ -13,7 +13,7 @@ const AdminDepartments = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await api.get('/api/departments');
+      const res = await axios.get('/api/departments');
       setDepartments(res.data);
     } catch (error) {
       console.error('Error fetching departments:', error);
@@ -23,7 +23,7 @@ const AdminDepartments = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/api/departments', formData);
+      await axios.post('/api/departments', formData);
       setShowModal(false);
       setFormData({ name: '', description: '' });
       fetchDepartments();
@@ -35,7 +35,7 @@ const AdminDepartments = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this department?')) {
       try {
-        await api.delete(`/api/departments/${id}`);
+        await axios.delete(`/api/departments/${id}`);
         fetchDepartments();
       } catch (error) {
         alert('Error deleting department');

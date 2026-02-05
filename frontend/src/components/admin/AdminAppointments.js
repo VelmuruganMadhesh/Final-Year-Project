@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api/axios';
+import axios from 'axios';
 
 const AdminAppointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -10,7 +10,7 @@ const AdminAppointments = () => {
 
   const fetchAppointments = async () => {
     try {
-      const res = await api.get('/api/appointments');
+      const res = await axios.get('/api/appointments');
       setAppointments(res.data);
     } catch (error) {
       console.error('Error fetching appointments:', error);

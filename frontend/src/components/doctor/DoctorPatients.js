@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api/axios';
+import axios from 'axios';
 import { FiPlus, FiFileText, FiEdit } from 'react-icons/fi';
 
 const DoctorPatients = () => {
@@ -24,7 +24,7 @@ const DoctorPatients = () => {
 
   const fetchPatients = async () => {
     try {
-      const res = await api.get('/api/doctors/me/patients');
+      const res = await axios.get('/api/doctors/me/patients');
       setPatients(res.data);
     } catch (error) {
       console.error('Error fetching patients:', error);
@@ -112,10 +112,10 @@ const DoctorPatients = () => {
       };
 
       if (editingPrescription) {
-        const response = await api.put(`/api/prescriptions/${editingPrescription._id}`, payload);
+        const response = await axios.put(`/api/prescriptions/${editingPrescription._id}`, payload);
         alert('Prescription updated successfully');
       } else {
-        const response = await api.post('/api/prescriptions', payload);
+        const response = await axios.post('/api/prescriptions', payload);
         alert('Prescription created successfully');
       }
       

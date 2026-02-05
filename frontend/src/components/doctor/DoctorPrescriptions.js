@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../api/axios';
+import axios from 'axios';
 import { FiEye } from 'react-icons/fi';
 
 const DoctorPrescriptions = () => {
@@ -15,7 +15,7 @@ const DoctorPrescriptions = () => {
 
   const fetchPrescriptions = async () => {
     try {
-      const res = await api.get('/api/prescriptions');
+      const res = await axios.get('/api/prescriptions');
       setPrescriptions(res.data);
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
