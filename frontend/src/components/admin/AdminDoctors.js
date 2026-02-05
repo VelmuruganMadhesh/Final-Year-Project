@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import { FiPlus, FiTrash2, FiEdit } from 'react-icons/fi';
 
 const AdminDoctors = () => {
@@ -25,7 +25,7 @@ const AdminDoctors = () => {
 
   const fetchDoctors = async () => {
     try {
-      const res = await axios.get('/api/doctors');
+      const res = await api.get('/api/doctors');
       setDoctors(res.data);
     } catch (error) {
       console.error('Error fetching doctors:', error);
@@ -34,7 +34,7 @@ const AdminDoctors = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get('/api/users');
+      const res = await api.get('/api/users');
       setUsers(res.data.filter(u => u.role === 'doctor' && !doctors.find(d => d.userId?._id === u._id)));
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -43,7 +43,7 @@ const AdminDoctors = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get('/api/departments');
+      const res = await api.get('/api/departments');
       setDepartments(res.data);
     } catch (error) {
       console.error('Error fetching departments:', error);
@@ -53,7 +53,7 @@ const AdminDoctors = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/doctors', {
+      await api.post('/api/doctors', {
         ...formData,
         qualifications: formData.qualifications.split(',').map(q => q.trim())
       });
@@ -77,7 +77,7 @@ const AdminDoctors = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to remove this doctor?')) {
       try {
-        await axios.delete(`/api/doctors/${id}`);
+        await api.delete(`/api/doctors/${id}`);
         fetchDoctors();
       } catch (error) {
         alert('Error removing doctor');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts';
 
 const AdminReports = () => {
@@ -17,10 +17,10 @@ const AdminReports = () => {
   const fetchStats = async () => {
     try {
       const [patientsRes, doctorsRes, appointmentsRes, revenueRes] = await Promise.all([
-        axios.get('/api/patients'),
-        axios.get('/api/doctors'),
-        axios.get('/api/appointments'),
-        axios.get('/api/billing/stats/revenue')
+        api.get('/api/patients'),
+        api.get('/api/doctors'),
+        api.get('/api/appointments'),
+        api.get('/api/billing/stats/revenue')
       ]);
 
       setStats({

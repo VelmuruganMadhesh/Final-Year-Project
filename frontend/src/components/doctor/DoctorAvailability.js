@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 
 const DoctorAvailability = () => {
   const [availability, setAvailability] = useState({
@@ -18,7 +18,7 @@ const DoctorAvailability = () => {
 
   const fetchAvailability = async () => {
     try {
-      const res = await axios.get('/api/doctors');
+      const res = await api.get('/api/doctors');
       if (res.data.length > 0) {
         const doctor = res.data[0];
         if (doctor.availability) {
@@ -32,9 +32,9 @@ const DoctorAvailability = () => {
 
   const handleUpdate = async () => {
     try {
-      const res = await axios.get('/api/doctors');
+      const res = await api.get('/api/doctors');
       if (res.data.length > 0) {
-        await axios.put(`/api/doctors/${res.data[0]._id}/availability`, { availability });
+        await api.put(`/api/doctors/${res.data[0]._id}/availability`, { availability });
         alert('Availability updated successfully');
       }
     } catch (error) {

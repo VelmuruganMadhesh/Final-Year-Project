@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import { FiPlus, FiX } from 'react-icons/fi';
 
 const AdminBilling = () => {
@@ -20,12 +20,12 @@ fetchPatients();
 }, []);
 
 const fetchBills = async () => {
-const res = await axios.get('/api/billing');
+const res = await api.get('/api/billing');
 setBills(res.data);
 };
 
 const fetchPatients = async () => {
-const res = await axios.get('/api/patients');
+const res = await api.get('/api/patients');
 setPatients(res.data);
 };
 
@@ -73,7 +73,7 @@ const payload = {
   }))
 };
 
-await axios.post('/api/billing', payload);
+await api.post('/api/billing', payload);
 
 setShowModal(false);
 setFormData({

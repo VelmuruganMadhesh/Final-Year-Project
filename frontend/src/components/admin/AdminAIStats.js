@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/axios';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const AdminAIStats = () => {
@@ -16,7 +16,7 @@ const AdminAIStats = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await axios.get('/api/ai/stats');
+      const res = await api.get('/api/ai/stats');
       setStats(res.data);
     } catch (error) {
       console.error('Error fetching AI stats:', error);
