@@ -1,0 +1,15 @@
+{
+  "name": "smart-hospital-management-system",
+  "version": "1.0.0",
+  "description": "Full-stack Smart Hospital Management System with AI Integration",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "cd backend && npm install && cd ../frontend && npm install && cd ../ai-services && pip install -r requirements.txt",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "dev:ai": "cd ai-services && python app.py"
+  },
+  "keywords": ["hospital", "management", "ai", "healthcare"],
+  "author": "",
+  "license": "ISC"
+}
