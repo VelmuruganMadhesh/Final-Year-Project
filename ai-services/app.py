@@ -4,20 +4,24 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 import pickle
 import os
 from datetime import datetime, timedelta
-import json
+import logging
+import difflib
 
 app = Flask(__name__)
 CORS(app)
 
-# Disease prediction model
-disease_model = None
-symptom_encoder = None
-disease_encoder = None
+MODEL_PATH = "disease_model.pkl"
 
-# Sample disease-symptom mapping (in production, use trained model)
+logging.basicConfig(level=logging.INFO)
+
+# -----------------------------
+# Disease-Symptom Knowledge Base
+# -----------------------------
 DISEASE_SYMPTOMS = {
     'Common Cold': ['fever', 'cough', 'sneezing', 'runny nose', 'sore throat'],
     'Flu': ['fever', 'cough', 'body ache', 'fatigue', 'headache'],
@@ -31,173 +35,217 @@ DISEASE_SYMPTOMS = {
     'Arthritis': ['joint pain', 'stiffness', 'swelling', 'reduced range of motion']
 }
 
+model = None
+symptom_index = {}
+disease_encoder = None
+
+
+# -----------------------------
+# Initialize / Load Model
+# -----------------------------
 def initialize_model():
-    """Initialize or load the disease prediction model"""
-    global disease_model, symptom_encoder, disease_encoder
-    
-    # Create sample training data
+    global model, symptom_index, disease_encoder
+
+    if os.path.exists(MODEL_PATH):
+        with open(MODEL_PATH, "rb") as f:
+            model, symptom_index, disease_encoder = pickle.load(f)
+        logging.info("Model loaded from file.")
+        return
+
     symptoms_list = []
     diseases_list = []
-    
+
     for disease, symptoms in DISEASE_SYMPTOMS.items():
-        for _ in range(50):  # Generate 50 samples per disease
+        for _ in range(100):
             symptoms_list.append(symptoms)
             diseases_list.append(disease)
-    
-    # Flatten symptoms and create feature vectors
-    all_symptoms = set()
-    for symptoms in symptoms_list:
-        all_symptoms.update(symptoms)
-    all_symptoms = sorted(list(all_symptoms))
-    
-    # Create feature matrix
+
+    all_symptoms = sorted({s for sublist in symptoms_list for s in sublist})
+    symptom_index = {symptom: idx for idx, symptom in enumerate(all_symptoms)}
+
     X = []
     for symptoms in symptoms_list:
-        feature_vector = [1 if symptom in symptoms else 0 for symptom in all_symptoms]
-        X.append(feature_vector)
-    
+        vector = [1 if s in symptoms else 0 for s in all_symptoms]
+        X.append(vector)
+
     X = np.array(X)
-    
-    # Encode diseases
+
     disease_encoder = LabelEncoder()
     y = disease_encoder.fit_transform(diseases_list)
-    
-    # Train model
-    disease_model = RandomForestClassifier(n_estimators=100, random_state=42)
-    disease_model.fit(X, y)
-    
-    symptom_encoder = {symptom: idx for idx, symptom in enumerate(all_symptoms)}
-    
-    print("Disease prediction model initialized")
 
-def predict_disease(symptoms, age, gender, medical_history):
-    """Predict disease based on symptoms"""
-    global disease_model, symptom_encoder, disease_encoder
-    
-    if disease_model is None:
-        initialize_model()
-    
-    # Create feature vector
-    feature_vector = np.zeros(len(symptom_encoder))
-    for symptom in symptoms:
-        symptom_lower = symptom.lower().strip()
-        if symptom_lower in symptom_encoder:
-            feature_vector[symptom_encoder[symptom_lower]] = 1
-    
-    # Predict
-    probabilities = disease_model.predict_proba([feature_vector])[0]
-    predicted_idx = np.argmax(probabilities)
-    predicted_disease = disease_encoder.inverse_transform([predicted_idx])[0]
-    confidence = probabilities[predicted_idx] * 100
-    
-    # Determine risk level based on disease, age, and medical history
+    model = Pipeline([
+        ('scaler', StandardScaler()),
+        ('rf', RandomForestClassifier(n_estimators=200, random_state=42))
+    ])
+
+    model.fit(X, y)
+
+    with open(MODEL_PATH, "wb") as f:
+        pickle.dump((model, symptom_index, disease_encoder), f)
+
+    logging.info("Model trained and saved.")
+
+
+# -----------------------------
+# Fuzzy Symptom Matching
+# -----------------------------
+def normalize_symptom(symptom):
+    symptom = symptom.lower().strip()
+    matches = difflib.get_close_matches(symptom, symptom_index.keys(), n=1, cutoff=0.7)
+    return matches[0] if matches else None
+
+
+# -----------------------------
+# Risk Scoring Algorithm
+# -----------------------------
+def calculate_risk(disease, age, medical_history, confidence):
+    risk_score = 0
+
     high_risk_diseases = ['Diabetes', 'Hypertension', 'Pneumonia', 'Asthma']
-    risk_level = 'low'
-    
-    if predicted_disease in high_risk_diseases:
-        risk_level = 'high'
-    elif age > 60 or len(medical_history) > 2:
-        risk_level = 'high'
-    elif age > 40 or len(medical_history) > 0:
-        risk_level = 'medium'
-    
+
+    if disease in high_risk_diseases:
+        risk_score += 3
+
+    if age > 60:
+        risk_score += 2
+    elif age > 40:
+        risk_score += 1
+
+    risk_score += min(len(medical_history), 3)
+
     if confidence < 50:
-        risk_level = 'low'
-    
-    # Generate recommendations
+        risk_score -= 1
+
+    if risk_score >= 5:
+        return "critical"
+    elif risk_score >= 3:
+        return "high"
+    elif risk_score >= 2:
+        return "medium"
+    return "low"
+
+
+# -----------------------------
+# Disease Prediction
+# -----------------------------
+def predict_disease(symptoms, age, gender, medical_history):
+    global model, symptom_index, disease_encoder
+
+    if model is None:
+        initialize_model()
+
+    vector = np.zeros(len(symptom_index))
+
+    for s in symptoms:
+        normalized = normalize_symptom(s)
+        if normalized:
+            vector[symptom_index[normalized]] = 1
+
+    probabilities = model.predict_proba([vector])[0]
+    idx = np.argmax(probabilities)
+
+    disease = disease_encoder.inverse_transform([idx])[0]
+    confidence = round(probabilities[idx] * 100, 2)
+
+    risk_level = calculate_risk(disease, age, medical_history, confidence)
+
     recommendations = [
-        f"Consult a doctor for {predicted_disease}",
-        "Monitor your symptoms closely",
-        "Get adequate rest and stay hydrated"
+        f"Consult a doctor regarding possible {disease}.",
+        "Stay hydrated and monitor symptoms.",
+        "Follow prescribed medication if any."
     ]
-    
-    if risk_level in ['high', 'critical']:
-        recommendations.append("Seek immediate medical attention if symptoms worsen")
-    
+
+    if risk_level in ["high", "critical"]:
+        recommendations.append("Immediate medical consultation recommended.")
+
     return {
-        'disease': predicted_disease,
-        'riskLevel': risk_level,
-        'confidence': round(confidence, 2),
-        'recommendations': recommendations
+        "disease": disease,
+        "confidence": confidence,
+        "riskLevel": risk_level,
+        "recommendations": recommendations
     }
 
-def schedule_appointment(risk_level, doctor_id, preferred_date):
-    """AI-based appointment scheduling"""
-    # Determine priority based on risk level
+
+# -----------------------------
+# AI Smart Scheduling
+# -----------------------------
+def schedule_appointment(risk_level, preferred_date):
     priority_map = {
-        'critical': 'urgent',
-        'high': 'high',
-        'medium': 'medium',
-        'low': 'low'
-    }
-    priority = priority_map.get(risk_level, 'medium')
-    
-    # Suggest time slots based on priority
-    time_slots = {
-        'urgent': ['09:00', '10:00', '11:00', '14:00', '15:00'],
-        'high': ['10:00', '11:00', '14:00', '15:00', '16:00'],
-        'medium': ['11:00', '14:00', '15:00', '16:00', '17:00'],
-        'low': ['14:00', '15:00', '16:00', '17:00']
-    }
-    
-    suggested_times = time_slots.get(priority, time_slots['medium'])
-    
-    # If urgent, suggest today or tomorrow
-    suggested_date = preferred_date
-    if priority == 'urgent':
-        try:
-            pref_date = datetime.strptime(preferred_date, '%Y-%m-%d')
-            today = datetime.now().date()
-            if pref_date.date() > today + timedelta(days=1):
-                suggested_date = (today + timedelta(days=1)).strftime('%Y-%m-%d')
-        except:
-            pass
-    
-    return {
-        'priority': priority,
-        'suggestedDate': suggested_date,
-        'suggestedTime': suggested_times[0] if suggested_times else '10:00',
-        'availableSlots': suggested_times
+        "critical": 0,
+        "high": 1,
+        "medium": 2,
+        "low": 3
     }
 
-@app.route('/predict', methods=['POST'])
+    base_times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00']
+
+    priority = priority_map.get(risk_level, 2)
+
+    today = datetime.now().date()
+    pref_date = datetime.strptime(preferred_date, '%Y-%m-%d').date()
+
+    if risk_level == "critical":
+        pref_date = today
+
+    suggested_times = base_times[:3] if priority <= 1 else base_times[3:]
+
+    return {
+        "priority": risk_level,
+        "suggestedDate": pref_date.strftime('%Y-%m-%d'),
+        "suggestedTime": suggested_times[0],
+        "availableSlots": suggested_times
+    }
+
+
+# -----------------------------
+# Routes
+# -----------------------------
+@app.route("/predict", methods=["POST"])
 def predict():
-    """Disease prediction endpoint"""
     try:
         data = request.json
-        symptoms = data.get('symptoms', [])
-        age = data.get('age', 30)
-        gender = data.get('gender', 'male')
-        medical_history = data.get('medicalHistory', [])
-        
-        if not symptoms:
-            return jsonify({'error': 'Symptoms are required'}), 400
-        
+
+        symptoms = data.get("symptoms")
+        age = int(data.get("age", 30))
+        gender = data.get("gender", "male")
+        medical_history = data.get("medicalHistory", [])
+
+        if not symptoms or not isinstance(symptoms, list):
+            return jsonify({"error": "Symptoms list required"}), 400
+
         result = predict_disease(symptoms, age, gender, medical_history)
         return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
-@app.route('/schedule', methods=['POST'])
+    except Exception as e:
+        logging.error(str(e))
+        return jsonify({"error": "Prediction failed"}), 500
+
+
+@app.route("/schedule", methods=["POST"])
 def schedule():
-    """Appointment scheduling endpoint"""
     try:
         data = request.json
-        risk_level = data.get('riskLevel', 'medium')
-        doctor_id = data.get('doctorId')
-        preferred_date = data.get('preferredDate', datetime.now().strftime('%Y-%m-%d'))
-        
-        result = schedule_appointment(risk_level, doctor_id, preferred_date)
+        risk_level = data.get("riskLevel", "medium")
+        preferred_date = data.get("preferredDate", datetime.now().strftime('%Y-%m-%d'))
+
+        result = schedule_appointment(risk_level, preferred_date)
         return jsonify(result)
+
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logging.error(str(e))
+        return jsonify({"error": "Scheduling failed"}), 500
 
-@app.route('/health', methods=['GET'])
+
+@app.route("/health", methods=["GET"])
 def health():
-    """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'service': 'AI Prediction Service'})
+    return jsonify({
+        "status": "healthy",
+        "modelLoaded": model is not None,
+        "timestamp": datetime.now().isoformat()
+    })
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     initialize_model()
-    port = int(os.environ.get('PORT', 5001))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host="0.0.0.0", port=port)

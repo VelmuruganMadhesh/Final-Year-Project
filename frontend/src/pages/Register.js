@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
@@ -14,29 +14,54 @@ const Register = () => {
     dateOfBirth: '',
     gender: 'male'
   });
-  const [error, setError] = useState('');
+
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [shake, setShake] = useState(false);
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  const validate = () => {
+    let newErrors = {};
+
+    if (!formData.name.trim())
+      newErrors.name = "Full name is required";
+
+    if (!formData.email)
+      newErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
+      newErrors.email = "Invalid email format";
+
+    if (!formData.password)
+      newErrors.password = "Password is required";
+    else if (formData.password.length < 6)
+      newErrors.password = "Minimum 6 characters required";
+
+    if (formData.password !== formData.confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match";
+
+    if (!formData.phone)
+      newErrors.phone = "Phone number is required";
+    else if (!/^[0-9]{10}$/.test(formData.phone))
+      newErrors.phone = "Enter valid 10-digit phone number";
+
+    if (!formData.address.trim())
+      newErrors.address = "Address is required";
+
+    if (!formData.dateOfBirth)
+      newErrors.dateOfBirth = "Date of birth is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (!validate()) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
       return;
     }
 
@@ -46,177 +71,204 @@ const Register = () => {
     setLoading(false);
 
     if (result.success) {
-      if (formData.role === 'patient') {
-        navigate('/patient');
-      } else {
-        navigate('/login');
-      }
+      navigate('/login');
     } else {
-      setError(result.message);
+      setErrors({ general: result.message });
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
     }
   };
 
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 py-8">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl">
-        <h2 className="text-3xl font-bold text-center text-primary-700 mb-6">
-          Register
-        </h2>
+    <>
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
+          @keyframes shake {
+            10%, 90% { transform: translateX(-1px); }
+            20%, 80% { transform: translateX(2px); }
+            30%, 50%, 70% { transform: translateX(-4px); }
+            40%, 60% { transform: translateX(4px); }
+          }
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
-              />
+          @keyframes slideFade {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+
+          .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out forwards;
+          }
+
+          .animate-shake {
+            animation: shake 0.4s ease-in-out;
+          }
+
+          .animate-dropdown {
+            animation: slideFade 0.3s ease-out forwards;
+          }
+        `}
+      </style>
+
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200 py-10">
+
+        <div
+          className={`w-full max-w-4xl bg-white p-8 rounded-2xl shadow-2xl 
+          transition-all duration-500 flex flex-col max-h-[95vh] overflow-y-auto
+          ${shake ? 'animate-shake' : 'animate-fadeIn'}`}
+        >
+
+          <h2 className="text-3xl font-bold text-center text-blue-700 mb-8">
+            Register
+          </h2>
+
+          {errors.general && (
+            <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-6 text-sm animate-fadeIn">
+              {errors.general}
             </div>
+          )}
 
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Email *
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
-              />
-            </div>
+          {/* GRID FORM */}
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+          >
 
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Password *
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
-              />
-            </div>
+            <InputField name="name" placeholder="Full Name" errors={errors} handleChange={handleChange} />
+            <InputField type="email" name="email" placeholder="Email" errors={errors} handleChange={handleChange} />
+            <InputField name="phone" placeholder="Phone (10 digits)" errors={errors} handleChange={handleChange} />
+            <InputField name="address" placeholder="Address" errors={errors} handleChange={handleChange} />
 
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Confirm Password *
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
-              />
-            </div>
+            <InputField type="password" name="password" placeholder="Password" errors={errors} handleChange={handleChange} />
+            <InputField type="password" name="confirmPassword" placeholder="Confirm Password" errors={errors} handleChange={handleChange} />
 
+            {/* Date of Birth */}
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Role *
-              </label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
-              >
-                <option value="patient">Patient</option>
-                <option value="doctor">Doctor</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Phone
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Date of Birth
-              </label>
               <input
                 type="date"
                 name="dateOfBirth"
-                value={formData.dateOfBirth}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 transition ${
+                  errors.dateOfBirth
+                    ? 'border-red-500 focus:ring-red-300'
+                    : 'focus:ring-blue-400'
+                }`}
               />
+              {errors.dateOfBirth && (
+                <p className="text-red-500 text-sm mt-1 animate-fadeIn">
+                  {errors.dateOfBirth}
+                </p>
+              )}
             </div>
 
-            <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Gender
-              </label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Address
-            </label>
-            <textarea
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              rows="3"
+            {/* Role */}
+            <AnimatedSelect
+              name="role"
+              value={formData.role}
+              options={[
+                { value: "patient", label: "Patient" },
+                { value: "doctor", label: "Doctor" }
+              ]}
+              handleChange={handleChange}
             />
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-          >
-            {loading ? 'Registering...' : 'Register'}
-          </button>
-        </form>
+            {/* Gender */}
+            <AnimatedSelect
+              name="gender"
+              value={formData.gender}
+              options={[
+                { value: "male", label: "Male" },
+                { value: "female", label: "Female" },
+                { value: "other", label: "Other" }
+              ]}
+              handleChange={handleChange}
+            />
 
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <a href="/login" className="text-primary-600 hover:underline">
-            Login
-          </a>
-        </p>
+            {/* Button full width */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-3">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg 
+                           hover:bg-blue-700 transition duration-300 
+                           disabled:opacity-50"
+              >
+                {loading ? 'Registering...' : 'Register'}
+              </button>
+            </div>
+
+          </form>
+
+          <p className="mt-6 text-center text-gray-600">
+            Already have an account?{' '}
+            <Link to="/login" className="text-blue-600 font-semibold hover:underline">
+              Login
+            </Link>
+          </p>
+
+        </div>
       </div>
-    </div>
+    </>
   );
 };
+
+/* Reusable Input */
+const InputField = ({ type = "text", name, placeholder, errors, handleChange }) => (
+  <div>
+    <input
+      type={type}
+      name={name}
+      placeholder={placeholder}
+      onChange={handleChange}
+      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 transition ${
+        errors[name]
+          ? 'border-red-500 focus:ring-red-300'
+          : 'focus:ring-blue-400'
+      }`}
+    />
+    {errors[name] && (
+      <p className="text-red-500 text-sm mt-1 animate-fadeIn">
+        {errors[name]}
+      </p>
+    )}
+  </div>
+);
+
+/* Animated Select */
+const AnimatedSelect = ({ name, value, options, handleChange }) => (
+  <div className="relative group animate-dropdown">
+    <select
+      name={name}
+      value={value}
+      onChange={handleChange}
+      className="w-full px-4 py-2 border rounded-lg bg-white
+                 focus:ring-2 focus:ring-blue-400
+                 transition-all duration-300
+                 focus:scale-[1.02]
+                 hover:scale-[1.02]
+                 appearance-none cursor-pointer"
+    >
+      {options.map(opt => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+
+    <div className="absolute right-4 top-3 pointer-events-none 
+                    transition-transform duration-300 
+                    group-focus-within:rotate-180">
+      ▼
+    </div>
+  </div>
+);
 
 export default Register;

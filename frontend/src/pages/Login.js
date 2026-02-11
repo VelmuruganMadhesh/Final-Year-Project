@@ -1,96 +1,148 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [shake, setShake] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const validate = () => {
+    let newErrors = {};
+
+    if (!email) newErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(email))
+      newErrors.email = "Invalid email format";
+
+    if (!password) newErrors.password = "Password is required";
+    else if (password.length < 6)
+      newErrors.password = "Password must be at least 6 characters";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
 
+    if (!validate()) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      return;
+    }
+
+    setLoading(true);
     const result = await login(email, password);
     setLoading(false);
 
     if (result.success) {
       const userRole = result.user?.role;
-      
-      if (userRole === 'admin') {
-        navigate('/admin');
-      } else if (userRole === 'doctor') {
-        navigate('/doctor');
-      } else {
-        navigate('/patient');
-      }
+      if (userRole === 'admin') navigate('/admin');
+      else if (userRole === 'doctor') navigate('/doctor');
+      else navigate('/patient');
     } else {
-      setError(result.message);
+      setErrors({ general: result.message });
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-        <h2 className="text-3xl font-bold text-center text-primary-700 mb-6">
-          Hospital Management System
+    <>
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+
+          @keyframes shake {
+            10%, 90% { transform: translateX(-1px); }
+            20%, 80% { transform: translateX(2px); }
+            30%, 50%, 70% { transform: translateX(-4px); }
+            40%, 60% { transform: translateX(4px); }
+          }
+
+          .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out forwards;
+          }
+
+          .animate-shake {
+            animation: shake 0.4s ease-in-out;
+          }
+        `}
+      </style>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200">
+      <div className={`w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl transition-all duration-500 ${shake ? 'animate-shake' : 'animate-fadeIn'}`}>
+
+        <h2 className="text-3xl font-bold text-center text-blue-700 mb-6">
+          Login
         </h2>
-        <h3 className="text-xl text-center text-gray-700 mb-8">Login</h3>
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+
+        {errors.general && (
+          <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4 text-sm">
+            {errors.general}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Email
-            </label>
             <input
               type="email"
+              placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              required
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 transition ${
+                errors.email ? 'border-red-500 focus:ring-red-300' : 'focus:ring-blue-400'
+              }`}
             />
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1 animate-fadeIn">
+                {errors.email}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Password
-            </label>
             <input
               type="password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              required
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 transition ${
+                errors.password ? 'border-red-500 focus:ring-red-300' : 'focus:ring-blue-400'
+              }`}
             />
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1 animate-fadeIn">
+                {errors.password}
+              </p>
+            )}
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300 disabled:opacity-50"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <a href="/register" className="text-primary-600 hover:underline">
+        <p className="mt-6 text-center text-gray-600">
+          Don’t have an account?{' '}
+          <Link to="/register" className="text-blue-600 font-semibold hover:underline">
             Register
-          </a>
+          </Link>
         </p>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
