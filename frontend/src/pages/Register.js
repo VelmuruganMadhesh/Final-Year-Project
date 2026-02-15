@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { IoPerson } from "react-icons/io5";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -118,7 +119,7 @@ const Register = () => {
         `}
       </style>
 
-      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200 py-10">
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-500 via-white to-blue-600 py-10">
 
         <div
           className={`w-full max-w-4xl bg-white p-8 rounded-2xl shadow-2xl 
@@ -136,7 +137,6 @@ const Register = () => {
             </div>
           )}
 
-          {/* GRID FORM */}
           <form
             onSubmit={handleSubmit}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"

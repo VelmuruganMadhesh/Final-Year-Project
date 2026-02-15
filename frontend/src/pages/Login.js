@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { FaEnvelope, FaLock, } from "react-icons/fa";
+import Logo from '../assets/MedAiLogo.png';
+
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -76,11 +79,13 @@ const Login = () => {
           }
         `}
       </style>
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-200">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-400 via-white to-blue-600">
       <div className={`w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl transition-all duration-500 ${shake ? 'animate-shake' : 'animate-fadeIn'}`}>
 
-        <h2 className="text-3xl font-bold text-center text-blue-700 mb-6">
-          Login
+        <h2 className="text-3xl font-bold text-center text-blue-700">
+          <div className='flex gap-3 items-center'>
+            <img src={Logo} alt="MedAI Logo" className="logo w-[200px] h-[150px]" /> Login
+          </div>
         </h2>
 
         {errors.general && (
@@ -91,13 +96,14 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          <div>
+          <div className='relative'>
+            <FaEnvelope className="absolute left-3 top-3 text-gray-400"/>
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 transition ${
+              className={`w-full pl-10 px-4 py-2 border rounded-lg focus:ring-2 transition ${
                 errors.email ? 'border-red-500 focus:ring-red-300' : 'focus:ring-blue-400'
               }`}
             />
@@ -108,13 +114,14 @@ const Login = () => {
             )}
           </div>
 
-          <div>
+          <div className='relative'>
+            <FaLock className="absolute left-3 top-3 text-gray-400"/>
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 transition ${
+              className={`w-full pl-10 px-4 py-2 border rounded-lg focus:ring-2 transition ${
                 errors.password ? 'border-red-500 focus:ring-red-300' : 'focus:ring-blue-400'
               }`}
             />
