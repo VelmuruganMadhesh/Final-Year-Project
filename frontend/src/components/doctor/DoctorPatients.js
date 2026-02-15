@@ -194,8 +194,8 @@ const DoctorPatients = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => {
-                        setSelectedPatient(patient);
                         resetForm();
+                        setSelectedPatient(patient);
                         setShowPrescriptionModal(true);
                       }}
                       className="text-primary-600 hover:text-primary-800 flex items-center mr-4"

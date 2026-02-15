@@ -83,7 +83,7 @@ const Layout = ({ children, role }) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="bg-white shadow-sm h-16 flex items-center justify-between px-4 lg:px-8">
+        <header className="bg-white shadow-sm h-16 flex items-center justify-between px-4 lg:px-8 lg:justify-end">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden"

@@ -19,9 +19,6 @@ MODEL_PATH = "disease_model.pkl"
 
 logging.basicConfig(level=logging.INFO)
 
-# -----------------------------
-# Disease-Symptom Knowledge Base
-# -----------------------------
 DISEASE_SYMPTOMS = {
     'Common Cold': ['fever', 'cough', 'sneezing', 'runny nose', 'sore throat'],
     'Flu': ['fever', 'cough', 'body ache', 'fatigue', 'headache'],
@@ -40,9 +37,6 @@ symptom_index = {}
 disease_encoder = None
 
 
-# -----------------------------
-# Initialize / Load Model
-# -----------------------------
 def initialize_model():
     global model, symptom_index, disease_encoder
 
@@ -85,19 +79,12 @@ def initialize_model():
 
     logging.info("Model trained and saved.")
 
-
-# -----------------------------
-# Fuzzy Symptom Matching
-# -----------------------------
 def normalize_symptom(symptom):
     symptom = symptom.lower().strip()
     matches = difflib.get_close_matches(symptom, symptom_index.keys(), n=1, cutoff=0.7)
     return matches[0] if matches else None
 
 
-# -----------------------------
-# Risk Scoring Algorithm
-# -----------------------------
 def calculate_risk(disease, age, medical_history, confidence):
     risk_score = 0
 
@@ -125,9 +112,6 @@ def calculate_risk(disease, age, medical_history, confidence):
     return "low"
 
 
-# -----------------------------
-# Disease Prediction
-# -----------------------------
 def predict_disease(symptoms, age, gender, medical_history):
     global model, symptom_index, disease_encoder
 
@@ -166,9 +150,6 @@ def predict_disease(symptoms, age, gender, medical_history):
     }
 
 
-# -----------------------------
-# AI Smart Scheduling
-# -----------------------------
 def schedule_appointment(risk_level, preferred_date):
     priority_map = {
         "critical": 0,
@@ -196,10 +177,6 @@ def schedule_appointment(risk_level, preferred_date):
         "availableSlots": suggested_times
     }
 
-
-# -----------------------------
-# Routes
-# -----------------------------
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
