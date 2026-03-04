@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaEnvelope, FaLock, } from "react-icons/fa";
-import Logo from '../assets/MedAiLogo.png';
+import Logo from '../assets/loginlogo.png';
 
 
 const Login = () => {
@@ -82,11 +82,9 @@ const Login = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-400 via-white to-blue-600">
       <div className={`w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl transition-all duration-500 ${shake ? 'animate-shake' : 'animate-fadeIn'}`}>
 
-        <h2 className="text-3xl font-bold text-center text-blue-700">
           <div className='flex gap-3 items-center'>
-            <img src={Logo} alt="MedAI Logo" className="logo w-[200px] h-[150px]" /> Login
+            <img src={Logo} alt="MedAI Logo" className="logo w-[400px] h-[150px]" />
           </div>
-        </h2>
 
         {errors.general && (
           <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4 text-sm">
@@ -135,7 +133,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300 disabled:opacity-50"
+            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-300 disabled:opacity-50"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
@@ -143,7 +141,7 @@ const Login = () => {
 
         <p className="mt-6 text-center text-gray-600">
           Don’t have an account?{' '}
-          <Link to="/register" className="text-blue-600 font-semibold hover:underline">
+          <Link to="/register" className="text-blue-700 font-semibold hover:underline">
             Register
           </Link>
         </p>

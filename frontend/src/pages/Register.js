@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { IoPerson } from "react-icons/io5";
+import Logo from '../assets/loginlogo.png';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -127,9 +127,9 @@ const Register = () => {
           ${shake ? 'animate-shake' : 'animate-fadeIn'}`}
         >
 
-          <h2 className="text-3xl font-bold text-center text-blue-700 mb-8">
-            Register
-          </h2>
+          <div className='flex justify-center'>
+                      <img src={Logo} alt="MedAI Logo" className="logo w-[400px] h-[150px]" />
+                    </div>
 
           {errors.general && (
             <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-6 text-sm animate-fadeIn">

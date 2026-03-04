@@ -52,58 +52,83 @@ const DoctorAvailability = () => {
     });
   };
 
-  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const days = Object.keys(availability);
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Set Availability</h1>
-      
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="space-y-4">
-          {days.map((day) => (
-            <div key={day} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
-              <div className="flex items-center space-x-2 w-32">
-                <input
-                  type="checkbox"
-                  checked={availability[day].available}
-                  onChange={(e) => updateDay(day, 'available', e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <label className="font-semibold capitalize">{day}</label>
-              </div>
-              
-              {availability[day].available && (
-                <>
-                  <div>
-                    <label className="text-sm text-gray-600">Start Time</label>
-                    <input
-                      type="time"
-                      value={availability[day].start}
-                      onChange={(e) => updateDay(day, 'start', e.target.value)}
-                      className="ml-2 px-3 py-2 border border-gray-300 rounded-md"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">End Time</label>
-                    <input
-                      type="time"
-                      value={availability[day].end}
-                      onChange={(e) => updateDay(day, 'end', e.target.value)}
-                      className="ml-2 px-3 py-2 border border-gray-300 rounded-md"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-5xl mx-auto">
         
-        <button
-          onClick={handleUpdate}
-          className="mt-6 bg-primary-600 text-white px-6 py-2 rounded-md hover:bg-primary-700"
-        >
-          Update Availability
-        </button>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-800">Weekly Availability</h1>
+          <p className="text-gray-500 mt-2">Set your working days and time slots</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            {days.map((day) => (
+              <div
+                key={day}
+                className={`p-6 rounded-xl border transition-all duration-300 ${
+                  availability[day].available
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  
+                  <h3 className="text-lg font-semibold capitalize text-gray-700">
+                    {day}
+                  </h3>
+
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={availability[day].available}
+                      onChange={(e) => updateDay(day, 'available', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-blue-600 transition-all"></div>
+                  </label>
+                </div>
+
+                {availability[day].available && (
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="text-sm text-gray-500">Start Time</label>
+                      <input
+                        type="time"
+                        value={availability[day].start}
+                        onChange={(e) => updateDay(day, 'start', e.target.value)}
+                        className="mt-1 w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex-1">
+                      <label className="text-sm text-gray-500">End Time</label>
+                      <input
+                        type="time"
+                        value={availability[day].end}
+                        onChange={(e) => updateDay(day, 'end', e.target.value)}
+                        className="mt-1 w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 flex justify-end">
+            <button
+              onClick={handleUpdate}
+              className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-xl shadow-md hover:bg-blue-700 transition-all duration-300"
+            >
+              Save Changes
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   );
