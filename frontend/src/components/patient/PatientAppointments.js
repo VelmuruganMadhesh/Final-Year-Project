@@ -1,19 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { FiPlus } from 'react-icons/fi';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { FiPlus, FiSearch, FiCalendar } from "react-icons/fi";
 
 const PatientAppointments = () => {
+
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const [showModal, setShowModal] = useState(false);
+
   const [formData, setFormData] = useState({
-    doctorId: '',
-    appointmentDate: '',
-    appointmentTime: '',
-    reason: '',
+    doctorId: "",
+    appointmentDate: "",
+    appointmentTime: "",
+    reason: "",
     symptoms: []
   });
-  const [symptomInput, setSymptomInput] = useState('');
+
+  const [symptomInput, setSymptomInput] = useState("");
 
   useEffect(() => {
     fetchAppointments();
@@ -21,230 +28,308 @@ const PatientAppointments = () => {
   }, []);
 
   const fetchAppointments = async () => {
-    try {
-      const res = await axios.get('/api/appointments');
-      setAppointments(res.data);
-    } catch (error) {
-      console.error('Error fetching appointments:', error);
-    }
+    const res = await axios.get("/api/appointments");
+    setAppointments(res.data);
   };
 
   const fetchDoctors = async () => {
-    try {
-      const res = await axios.get('/api/doctors');
-      setDoctors(res.data);
-    } catch (error) {
-      console.error('Error fetching doctors:', error);
-    }
+    const res = await axios.get("/api/doctors");
+    setDoctors(res.data);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      await axios.post('/api/appointments', {
-        ...formData,
-        symptoms: formData.symptoms.length > 0 ? formData.symptoms : symptomInput.split(',').map(s => s.trim()).filter(s => s)
-      });
-      setShowModal(false);
-      setFormData({
-        doctorId: '',
-        appointmentDate: '',
-        appointmentTime: '',
-        reason: '',
-        symptoms: []
-      });
-      setSymptomInput('');
-      fetchAppointments();
-    } catch (error) {
-      alert('Error booking appointment');
-    }
+
+    await axios.post("/api/appointments", {
+      ...formData,
+      symptoms:
+        formData.symptoms.length > 0
+          ? formData.symptoms
+          : symptomInput.split(",").map((s) => s.trim()).filter((s) => s)
+    });
+
+    setShowModal(false);
+
+    setFormData({
+      doctorId: "",
+      appointmentDate: "",
+      appointmentTime: "",
+      reason: "",
+      symptoms: []
+    });
+
+    setSymptomInput("");
+
+    fetchAppointments();
   };
 
   const addSymptom = () => {
-    if (symptomInput.trim()) {
-      setFormData({
-        ...formData,
-        symptoms: [...formData.symptoms, symptomInput.trim()]
-      });
-      setSymptomInput('');
+    if (!symptomInput.trim()) return;
+
+    setFormData({
+      ...formData,
+      symptoms: [...formData.symptoms, symptomInput]
+    });
+
+    setSymptomInput("");
+  };
+
+  // SEARCH + FILTER
+  let filtered = appointments.filter((apt) =>
+    apt.doctor?.userId?.name
+      ?.toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  if (statusFilter !== "all") {
+    filtered = filtered.filter((apt) => apt.status === statusFilter);
+  }
+
+  const statusColor = (status) => {
+    switch (status) {
+      case "confirmed":
+        return "bg-blue-100 text-blue-700";
+      case "completed":
+        return "bg-green-100 text-green-700";
+      case "pending":
+        return "bg-yellow-100 text-yellow-700";
+      default:
+        return "bg-red-100 text-red-700";
     }
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">My Appointments</h1>
+    <div className="p-8 bg-gray-50 min-h-screen">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-8">
+
+        <h1 className="text-3xl font-bold text-gray-800">
+          My Appointments
+        </h1>
+
         <button
           onClick={() => setShowModal(true)}
-          className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 flex items-center"
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:scale-105 transition"
         >
-          <FiPlus className="mr-2" />
+          <FiPlus />
           Book Appointment
         </button>
+
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Doctor</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">AI Prediction</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {appointments.map((apt) => (
-              <tr key={apt._id}>
-                <td className="px-6 py-4 whitespace-nowrap">{apt.doctor?.userId?.name || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {apt.appointmentDate ? new Date(apt.appointmentDate).toLocaleDateString() : 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">{apt.appointmentTime || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    apt.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    apt.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                    apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {apt.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  {apt.aiPrediction ? (
-                    <div className="text-sm">
-                      <div className="font-semibold">{apt.aiPrediction.predictedDisease}</div>
-                      <div className={`text-xs ${
-                        apt.aiPrediction.riskLevel === 'high' ? 'text-red-600' :
-                        apt.aiPrediction.riskLevel === 'medium' ? 'text-yellow-600' :
-                        'text-green-600'
-                      }`}>
-                        Risk: {apt.aiPrediction.riskLevel}
-                      </div>
-                    </div>
-                  ) : 'N/A'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* SEARCH + FILTER */}
+      <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4">
+
+        <div className="flex items-center border px-3 py-2 rounded-lg w-72">
+          <FiSearch className="text-gray-400 mr-2"/>
+          <input
+            type="text"
+            placeholder="Search doctor..."
+            className="outline-none w-full"
+            onChange={(e)=>setSearch(e.target.value)}
+          />
+        </div>
+
+        <select
+          className="border px-3 py-2 rounded-lg"
+          onChange={(e)=>setStatusFilter(e.target.value)}
+        >
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="completed">Completed</option>
+        </select>
+
       </div>
+
+      {/* APPOINTMENT CARDS */}
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {filtered.map((apt) => (
+
+          <div
+            key={apt._id}
+            className="bg-white rounded-xl shadow hover:shadow-lg transition p-5"
+          >
+
+            <div className="flex justify-between mb-3">
+
+              <h2 className="font-semibold text-lg">
+                Dr. {apt.doctor?.userId?.name}
+              </h2>
+
+              <span className={`text-xs px-3 py-1 rounded-full ${statusColor(apt.status)}`}>
+                {apt.status}
+              </span>
+
+            </div>
+
+            <div className="text-sm text-gray-600 space-y-1">
+
+              <p className="flex items-center gap-2">
+                <FiCalendar/>
+                {new Date(apt.appointmentDate).toLocaleDateString()}
+              </p>
+
+              <p>Time: {apt.appointmentTime}</p>
+
+              <p className="text-gray-500">
+                {apt.reason || "No reason provided"}
+              </p>
+
+            </div>
+
+            {/* AI Prediction */}
+
+            {apt.aiPrediction && (
+
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+
+                <p className="font-medium">
+                  {apt.aiPrediction.predictedDisease}
+                </p>
+
+                <p className={`text-xs ${
+                  apt.aiPrediction.riskLevel === "high"
+                    ? "text-red-600"
+                    : apt.aiPrediction.riskLevel === "medium"
+                    ? "text-yellow-600"
+                    : "text-green-600"
+                }`}>
+                  Risk: {apt.aiPrediction.riskLevel}
+                </p>
+
+              </div>
+
+            )}
+
+          </div>
+
+        ))}
+
+      </div>
+
+      {/* MODAL */}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Book Appointment</h2>
+
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+
+            <h2 className="text-2xl font-bold mb-4">
+              Book Appointment
+            </h2>
+
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Doctor</label>
-                <select
-                  value={formData.doctorId}
-                  onChange={(e) => setFormData({ ...formData, doctorId: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  required
-                >
-                  <option value="">Select Doctor</option>
-                  {doctors.map(doctor => (
-                    <option key={doctor._id} value={doctor._id}>
-                      {doctor.userId?.name} - {doctor.specialization}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Date</label>
+
+              <select
+                required
+                className="w-full border rounded-lg px-3 py-2"
+                value={formData.doctorId}
+                onChange={(e)=>
+                  setFormData({...formData,doctorId:e.target.value})
+                }
+              >
+                <option value="">Select Doctor</option>
+
+                {doctors.map((doctor)=>(
+                  <option key={doctor._id} value={doctor._id}>
+                    {doctor.userId?.name} - {doctor.specialization}
+                  </option>
+                ))}
+
+              </select>
+
+              <input
+                type="date"
+                required
+                className="w-full border rounded-lg px-3 py-2"
+                onChange={(e)=>
+                  setFormData({...formData,appointmentDate:e.target.value})
+                }
+              />
+
+              <input
+                type="time"
+                required
+                className="w-full border rounded-lg px-3 py-2"
+                onChange={(e)=>
+                  setFormData({...formData,appointmentTime:e.target.value})
+                }
+              />
+
+              <textarea
+                placeholder="Reason"
+                className="w-full border rounded-lg px-3 py-2"
+                onChange={(e)=>
+                  setFormData({...formData,reason:e.target.value})
+                }
+              />
+
+              <div className="flex gap-2">
+
                 <input
-                  type="date"
-                  value={formData.appointmentDate}
-                  onChange={(e) => setFormData({ ...formData, appointmentDate: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  required
+                  placeholder="Enter symptom"
+                  value={symptomInput}
+                  onChange={(e)=>setSymptomInput(e.target.value)}
+                  className="flex-1 border rounded-lg px-3 py-2"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Time</label>
-                <input
-                  type="time"
-                  value={formData.appointmentTime}
-                  onChange={(e) => setFormData({ ...formData, appointmentTime: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Reason</label>
-                <textarea
-                  value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  rows="2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Symptoms (for AI prediction)</label>
-                <div className="flex space-x-2 mt-1">
-                  <input
-                    type="text"
-                    value={symptomInput}
-                    onChange={(e) => setSymptomInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSymptom())}
-                    placeholder="Enter symptom and press Enter"
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2"
-                  />
-                  <button
-                    type="button"
-                    onClick={addSymptom}
-                    className="px-4 py-2 bg-gray-200 rounded-md"
-                  >
-                    Add
-                  </button>
-                </div>
-                {formData.symptoms.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {formData.symptoms.map((symptom, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm"
-                      >
-                        {symptom}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData({
-                              ...formData,
-                              symptoms: formData.symptoms.filter((_, i) => i !== index)
-                            });
-                          }}
-                          className="ml-2"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-end space-x-4">
+
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md"
+                  onClick={addSymptom}
+                  className="bg-gray-200 px-3 rounded-lg"
+                >
+                  Add
+                </button>
+
+              </div>
+
+              {/* symptoms */}
+
+              <div className="flex flex-wrap gap-2">
+
+                {formData.symptoms.map((s,i)=>(
+                  <span
+                    key={i}
+                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs"
+                  >
+                    {s}
+                  </span>
+                ))}
+
+              </div>
+
+              <div className="flex justify-end gap-3">
+
+                <button
+                  type="button"
+                  onClick={()=>setShowModal(false)}
+                  className="border px-4 py-2 rounded-lg"
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg"
                 >
                   Book
                 </button>
+
               </div>
+
             </form>
+
           </div>
+
         </div>
+
       )}
+
     </div>
   );
 };

@@ -4,205 +4,217 @@ const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
 const axios = require('axios');
-const User = require('../models/User');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
+// @route   POST /api/appointments
+// @desc    Create a new appointment
+// @access  Private
 router.post('/', protect, async (req, res) => {
   try {
     const { doctorId, appointmentDate, appointmentTime, reason, symptoms } = req.body;
 
+    // Get patient
     let patient;
-
     if (req.user.role === 'patient') {
       patient = await Patient.findOne({ userId: req.user._id });
-      if (!patient) return res.status(404).json({ message: 'Patient profile not found' });
+      if (!patient) {
+        return res.status(404).json({ message: 'Patient profile not found' });
+      }
     } else {
       patient = await Patient.findById(req.body.patientId);
-      if (!patient) return res.status(404).json({ message: 'Patient not found' });
+      if (!patient) {
+        return res.status(404).json({ message: 'Patient not found' });
+      }
     }
 
+    // Get doctor
     const doctor = await Doctor.findById(doctorId).populate('department');
-    if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
 
+    // Get AI prediction if symptoms provided
     let aiPrediction = null;
-
     if (symptoms && symptoms.length > 0) {
       try {
-        const user = await User.findById(patient.userId);
-
-        const predictionResponse = await axios.post(
-          `${process.env.AI_SERVICE_URL || 'http://localhost:5001'}/predict`,
-          {
-            symptoms,
-            age: user.dateOfBirth
-              ? new Date().getFullYear() - new Date(user.dateOfBirth).getFullYear()
-              : 30,
-            gender: user.gender || 'male',
-            medicalHistory: patient.medicalHistory?.map(mh => mh.condition) || []
-          }
-        );
+        const user = await require('../models/User').findById(patient.userId);
+        const predictionResponse = await axios.post(`${process.env.AI_SERVICE_URL || 'http://localhost:5001'}/predict`, {
+          symptoms,
+          age: user.dateOfBirth ? new Date().getFullYear() - new Date(user.dateOfBirth).getFullYear() : 30,
+          gender: user.gender || 'male',
+          medicalHistory: patient.medicalHistory.map(mh => mh.condition)
+        });
 
         aiPrediction = predictionResponse.data;
-      } catch (err) {
-        console.error('AI prediction error:', err.message);
+      } catch (error) {
+        console.error('AI prediction error:', error.message);
+      }
+    }
+
+    // Get AI scheduling if enabled
+    let priority = 'medium';
+    let scheduledTime = appointmentTime;
+    if (aiPrediction) {
+      try {
+        const schedulingResponse = await axios.post(`${process.env.AI_SERVICE_URL || 'http://localhost:5001'}/schedule`, {
+          riskLevel: aiPrediction.riskLevel,
+          doctorId: doctorId,
+          preferredDate: appointmentDate
+        });
+
+        if (schedulingResponse.data) {
+          priority = schedulingResponse.data.priority || priority;
+          scheduledTime = schedulingResponse.data.suggestedTime || scheduledTime;
+        }
+      } catch (error) {
+        console.error('AI scheduling error:', error.message);
       }
     }
 
     const appointment = await Appointment.create({
       patient: patient._id,
-      doctor: doctor._id,
+      doctor: doctorId,
       department: doctor.department._id,
       appointmentDate,
-      appointmentTime,
+      appointmentTime: scheduledTime,
       reason,
       symptoms: symptoms || [],
-      status: 'pending',
-      aiPrediction: aiPrediction
-        ? {
-            predictedDisease: aiPrediction.disease,
-            riskLevel: aiPrediction.riskLevel,
-            confidence: aiPrediction.confidence
-          }
-        : null
+      aiPrediction: aiPrediction ? {
+        predictedDisease: aiPrediction.disease,
+        riskLevel: aiPrediction.riskLevel,
+        confidence: aiPrediction.confidence
+      } : null,
+      priority,
+      aiScheduled: !!aiPrediction
     });
 
+    // Auto-assign doctor if patient doesn't have one
     if (!patient.assignedDoctor) {
       patient.assignedDoctor = doctor._id;
       await patient.save();
     }
 
-    const populated = await Appointment.findById(appointment._id)
-      .populate({
-        path: 'doctor',
-        populate: { path: 'userId', select: 'name email phone gender dateOfBirth' }
-      })
-      .populate({
-        path: 'patient',
-        populate: { path: 'userId', select: 'name email phone' }
-      })
-      .populate('department', 'departmentName');
+    const populatedAppointment = await Appointment.findById(appointment._id)
+      .populate('patient', 'userId')
+      .populate('doctor')
+      .populate('department');
 
-    res.status(201).json(populated);
-
+    res.status(201).json(populatedAppointment);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+// @route   GET /api/appointments
+// @desc    Get all appointments
+// @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const {
-      pageNumber = 1,
-      pageSize = 10,
-      sortBy = 'appointmentDate',
-      sortOrder = 'desc',
-      searchTerm = '',
-      filters
-    } = req.query;
-
     let query = {};
 
     if (req.user.role === 'patient') {
       const patient = await Patient.findOne({ userId: req.user._id });
-      if (patient) query.patient = patient._id;
-    }
-
-    if (req.user.role === 'doctor') {
+      if (patient) {
+        query.patient = patient._id;
+      }
+    } else if (req.user.role === 'doctor') {
       const doctor = await Doctor.findOne({ userId: req.user._id });
-      if (doctor) query.doctor = doctor._id;
+      if (doctor) {
+        query.doctor = doctor._id;
+      }
     }
-
-    if (filters) {
-      const parsed = JSON.parse(filters);
-      if (parsed.status) query.status = parsed.status;
-    }
-
-    if (searchTerm) {
-      const patients = await Patient.find()
-        .populate('userId', 'name')
-        .then(results =>
-          results.filter(p =>
-            p.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        );
-
-      query.patient = { $in: patients.map(p => p._id) };
-    }
-
-    const skip = (Number(pageNumber) - 1) * Number(pageSize);
-
-    const totalRecords = await Appointment.countDocuments(query);
-
     const appointments = await Appointment.find(query)
-      .populate({
-        path: 'doctor',
-        populate: { path: 'userId', select: 'name email phone gender dateOfBirth' }
-      })
-      .populate({
-        path: 'patient',
-        populate: { path: 'userId', select: 'name email phone' }
-      })
-      .populate('department', 'departmentName')
-      .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
-      .skip(skip)
-      .limit(Number(pageSize));
+  .populate({
+    path: "doctor",
+    populate: {
+      path: "userId",
+      select: "name email phone gender dateOfBirth"
+    }
+  })
+  .populate({
+    path: "patient",
+    populate: {
+      path: "userId",
+      select: "name email phone"
+    }
+  })
+  .populate("department", "departmentName")
+  .sort({ appointmentDate: -1, appointmentTime: -1 });
 
-    res.json({
-      totalRecords,
-      filteredRecords: totalRecords,
-      data: appointments
-    });
-
+res.json(appointments);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-router.put('/:id/status', protect, async (req, res) => {
+// @route   GET /api/appointments/:id
+// @desc    Get appointment by ID
+// @access  Private
+router.get('/:id', protect, async (req, res) => {
   try {
-    const { status } = req.body;
+    const appointment = await Appointment.findById(req.params.id)
+      .populate('patient', 'userId')
+      .populate('doctor')
+      .populate('department');
 
-    const appointment = await Appointment.findById(req.params.id);
-    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
 
-    if (req.user.role !== 'doctor')
-      return res.status(403).json({ message: 'Only doctor can update status' });
-
-    const currentStatus = appointment.status;
-
-    const validTransitions = {
-      pending: ['confirmed', 'cancelled'],
-      confirmed: ['completed', 'cancelled'],
-      completed: [],
-      cancelled: []
-    };
-
-    if (!validTransitions[currentStatus].includes(status))
-      return res.status(400).json({ message: 'Invalid status transition' });
-
-    appointment.status = status;
-    await appointment.save();
-
-    res.json({ message: 'Status updated successfully', appointment });
-
+    res.json(appointment);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+// @route   PUT /api/appointments/:id
+// @desc    Update appointment
+// @access  Private
+router.put('/:id', protect, async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    const { status, notes, appointmentDate, appointmentTime } = req.body;
+    if (status) appointment.status = status;
+    if (notes !== undefined) appointment.notes = notes;
+    if (appointmentDate) appointment.appointmentDate = appointmentDate;
+    if (appointmentTime) appointment.appointmentTime = appointmentTime;
+
+    await appointment.save();
+    const updatedAppointment = await Appointment.findById(appointment._id)
+      .populate('patient', 'userId')
+      .populate('doctor')
+      .populate('department');
+
+    res.json(updatedAppointment);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   DELETE /api/appointments/:id
+// @desc    Cancel appointment
+// @access  Private
 router.delete('/:id', protect, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
-    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
 
     appointment.status = 'cancelled';
     await appointment.save();
 
     res.json({ message: 'Appointment cancelled successfully' });
-
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 });

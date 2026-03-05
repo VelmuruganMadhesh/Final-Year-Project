@@ -1,20 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Layout from '../components/Layout';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Layout from "../components/Layout";
+import axios from "axios";
+
 import {
-  FiUsers, FiActivity, FiCalendar, FiDollarSign,
-  FiTrendingUp, FiHeart, FiUserCheck
-} from 'react-icons/fi';
-import AdminDoctors from '../components/admin/AdminDoctors';
-import AdminPatients from '../components/admin/AdminPatients';
-import AdminDepartments from '../components/admin/AdminDepartments';
-import AdminAppointments from '../components/admin/AdminAppointments';
-import AdminBilling from '../components/admin/AdminBilling';
-import AdminReports from '../components/admin/AdminReports';
-import AdminAIStats from '../components/admin/AdminAIStats';
+  FiUsers,
+  FiActivity,
+  FiCalendar,
+  FiDollarSign,
+  FiTrendingUp,
+  FiUserCheck,
+  FiPlusCircle,
+  FiClipboard
+} from "react-icons/fi";
+
+import AdminDoctors from "../components/admin/AdminDoctors";
+import AdminPatients from "../components/admin/AdminPatients";
+import AdminDepartments from "../components/admin/AdminDepartments";
+import AdminAppointments from "../components/admin/AdminAppointments";
+import AdminBilling from "../components/admin/AdminBilling";
+import AdminReports from "../components/admin/AdminReports";
+import AdminAIStats from "../components/admin/AdminAIStats";
 
 const AdminDashboard = () => {
+
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalDoctors: 0,
@@ -30,16 +39,19 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [patientsRes, doctorsRes, appointmentsRes, billingRes] = await Promise.all([
-        axios.get('/api/patients'),
-        axios.get('/api/doctors'),
-        axios.get('/api/appointments'),
-        axios.get('/api/billing/stats/revenue')
-      ]);
 
-      const today = new Date().toISOString().split('T')[0];
+      const [patientsRes, doctorsRes, appointmentsRes, billingRes] =
+        await Promise.all([
+          axios.get("/api/patients"),
+          axios.get("/api/doctors"),
+          axios.get("/api/appointments"),
+          axios.get("/api/billing/stats/revenue")
+        ]);
+
+      const today = new Date().toISOString().split("T")[0];
+
       const todayAppts = appointmentsRes.data.filter(
-        apt => apt.appointmentDate?.split('T')[0] === today
+        (apt) => apt.appointmentDate?.split("T")[0] === today
       );
 
       setStats({
@@ -50,53 +62,77 @@ const AdminDashboard = () => {
         todayAppointments: todayAppts.length,
         pendingBills: billingRes.data.pendingBills || 0
       });
+
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error("Error fetching stats:", error);
     }
   };
 
   const DashboardHome = () => (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Admin Dashboard</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <StatCard
-          title="Total Patients"
-          value={stats.totalPatients}
-          icon={<FiUsers className="w-8 h-8" />}
-          color="blue"
-        />
-        <StatCard
-          title="Total Doctors"
-          value={stats.totalDoctors}
-          icon={<FiUserCheck className="w-8 h-8" />}
-          color="green"
-        />
-        <StatCard
-          title="Total Appointments"
-          value={stats.totalAppointments}
-          icon={<FiCalendar className="w-8 h-8" />}
-          color="purple"
-        />
-        <StatCard
-          title="Today's Appointments"
-          value={stats.todayAppointments}
-          icon={<FiActivity className="w-8 h-8" />}
-          color="orange"
-        />
-        <StatCard
-          title="Total Revenue"
-          value={`$${stats.totalRevenue.toLocaleString()}`}
-          icon={<FiDollarSign className="w-8 h-8" />}
-          color="green"
-        />
-        <StatCard
-          title="Pending Bills"
-          value={stats.pendingBills}
-          icon={<FiTrendingUp className="w-8 h-8" />}
-          color="red"
-        />
+    <div className="space-y-8">
+
+      {/* HEADER */}
+      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6 rounded-xl shadow-lg text-white">
+        <h1 className="text-3xl font-bold">Hospital Admin Dashboard</h1>
+        <p className="opacity-80 mt-1">
+          Manage hospital operations, doctors and patients
+        </p>
       </div>
+
+      {/* STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+        <StatCard title="Total Patients" value={stats.totalPatients} icon={<FiUsers />} color="bg-blue-500" />
+        <StatCard title="Doctors" value={stats.totalDoctors} icon={<FiUserCheck />} color="bg-green-500" />
+        <StatCard title="Appointments" value={stats.totalAppointments} icon={<FiCalendar />} color="bg-purple-500" />
+        <StatCard title="Today's Visits" value={stats.todayAppointments} icon={<FiActivity />} color="bg-orange-500" />
+        <StatCard title="Revenue" value={`$${stats.totalRevenue}`} icon={<FiDollarSign />} color="bg-teal-500" />
+        <StatCard title="Pending Bills" value={stats.pendingBills} icon={<FiTrendingUp />} color="bg-red-500" />
+
+      </div>
+
+      {/* QUICK ACTIONS */}
+      <div className="bg-white p-6 rounded-xl shadow-md">
+
+        <h2 className="text-lg font-semibold mb-4">
+          Quick Actions
+        </h2>
+
+        <div className="grid md:grid-cols-3 gap-4">
+
+          <ActionCard
+            title="Add Doctor"
+            icon={<FiUserCheck />}
+            color="bg-green-500"
+          />
+
+          <ActionCard
+            title="Add Patient"
+            icon={<FiPlusCircle />}
+            color="bg-blue-500"
+          />
+
+          <ActionCard
+            title="Create Appointment"
+            icon={<FiCalendar />}
+            color="bg-purple-500"
+          />
+
+          <ActionCard
+            title="Generate Bill"
+            icon={<FiDollarSign />}
+            color="bg-orange-500"
+          />
+
+          <ActionCard
+            title="View Reports"
+            icon={<FiClipboard />}
+            color="bg-indigo-500"
+          />
+
+        </div>
+      </div>
+
     </div>
   );
 
@@ -117,28 +153,31 @@ const AdminDashboard = () => {
   );
 };
 
-const StatCard = ({ title, value, icon, color }) => {
-  const colorClasses = {
-    blue: 'bg-blue-500',
-    green: 'bg-green-500',
-    purple: 'bg-purple-500',
-    orange: 'bg-orange-500',
-    red: 'bg-red-500'
-  };
+const StatCard = ({ title, value, icon, color }) => (
+  <div className="bg-white shadow-md rounded-xl p-5 flex justify-between items-center hover:shadow-lg transition">
 
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-800 mt-2">{value}</p>
-        </div>
-        <div className={`${colorClasses[color]} text-white p-3 rounded-full`}>
-          {icon}
-        </div>
-      </div>
+    <div>
+      <p className="text-gray-500 text-sm">{title}</p>
+      <h2 className="text-2xl font-bold">{value}</h2>
     </div>
-  );
-};
+
+    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white ${color}`}>
+      {icon}
+    </div>
+
+  </div>
+);
+
+const ActionCard = ({ title, icon, color }) => (
+  <div className="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition">
+
+    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white ${color}`}>
+      {icon}
+    </div>
+
+    <p className="font-medium">{title}</p>
+
+  </div>
+);
 
 export default AdminDashboard;

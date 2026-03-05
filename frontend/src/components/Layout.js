@@ -144,7 +144,7 @@ const Layout = ({ children, role }) => {
       <div className="flex-1 flex flex-col overflow-hidden">
         
         {/* Topbar */}
-        <header className="bg-white shadow-sm h-16 flex items-center justify-between px-4 lg:px-8 border-b">
+        <header className="bg-white shadow-sm h-16 flex items-center justify-end px-4 lg:px-8 border-b">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-sky-600"
@@ -152,7 +152,7 @@ const Layout = ({ children, role }) => {
             <FiMenu size={22} />
           </button>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-end space-x-4">
             <span className="text-gray-700 font-medium">
               {user?.name}
             </span>

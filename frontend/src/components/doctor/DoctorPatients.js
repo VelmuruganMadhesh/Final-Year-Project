@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-import { FiPlus, FiSearch } from 'react-icons/fi'
+import { FiPlus, FiSearch, FiUser } from 'react-icons/fi'
 import toast, { Toaster } from 'react-hot-toast'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const DoctorPatients = () => {
   const [patients, setPatients] = useState([])
@@ -13,7 +14,7 @@ const DoctorPatients = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const patientsPerPage = 5
+  const patientsPerPage = 6
 
   const [prescriptionData, setPrescriptionData] = useState({
     medications: [{ name: '', dosage: '', frequency: '', duration: '', instructions: '' }],
@@ -112,16 +113,15 @@ const DoctorPatients = () => {
 
       if (editingPrescription) {
         await axios.put(`/api/prescriptions/${editingPrescription._id}`, payload)
-        toast.success('Prescription updated successfully')
+        toast.success('Prescription updated')
       } else {
         await axios.post('/api/prescriptions', payload)
-        toast.success('Prescription created successfully')
+        toast.success('Prescription created')
       }
 
       setShowPrescriptionModal(false)
       resetForm()
-      fetchPatients()
-    } catch (err) {
+    } catch {
       toast.error('Error saving prescription')
     } finally {
       setLoading(false)
@@ -129,13 +129,16 @@ const DoctorPatients = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-8">
       <Toaster position="top-right" />
 
       <div className="max-w-7xl mx-auto">
 
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">My Patients</h1>
+        <div className="flex justify-between items-center mb-10">
+          <div>
+            <h1 className="text-4xl font-extrabold text-gray-800">Patients</h1>
+            <p className="text-gray-500 mt-1">Manage and prescribe treatments</p>
+          </div>
 
           <div className="relative">
             <FiSearch className="absolute top-3 left-3 text-gray-400" />
@@ -147,56 +150,63 @@ const DoctorPatients = () => {
                 setSearch(e.target.value)
                 setCurrentPage(1)
               }}
-              className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="pl-10 pr-4 py-3 rounded-2xl bg-white shadow-md focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="min-w-full">
-            <thead className="bg-gray-100 text-gray-600 text-sm uppercase">
-              <tr>
-                <th className="px-6 py-4 text-left">Name</th>
-                <th className="px-6 py-4 text-left">Email</th>
-                <th className="px-6 py-4 text-left">Phone</th>
-                <th className="px-6 py-4 text-left">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentPatients.map(patient => (
-                <tr key={patient._id} className="border-t hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium">{patient.userId?.name}</td>
-                  <td className="px-6 py-4">{patient.userId?.email}</td>
-                  <td className="px-6 py-4">{patient.userId?.phone}</td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => {
-                        resetForm()
-                        setSelectedPatient(patient)
-                        setShowPrescriptionModal(true)
-                      }}
-                      className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-                    >
-                      <FiPlus />
-                      Add Prescription
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {currentPatients.map(patient => (
+            <motion.div
+              key={patient._id}
+              whileHover={{ scale: 1.03 }}
+              className="bg-white rounded-3xl shadow-xl p-6 relative overflow-hidden"
+            >
+              <div className="absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full opacity-20"></div>
+
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl">
+                  <FiUser />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800">
+                    {patient.userId?.name}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {patient.userId?.email}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-6">
+                {patient.userId?.phone}
+              </p>
+
+              <button
+                onClick={() => {
+                  resetForm()
+                  setSelectedPatient(patient)
+                  setShowPrescriptionModal(true)
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold shadow-md hover:scale-105 transition"
+              >
+                <FiPlus />
+                Add Prescription
+              </button>
+            </motion.div>
+          ))}
         </div>
 
         {totalPages > 1 && (
-          <div className="flex justify-center mt-6 gap-2">
+          <div className="flex justify-center mt-10 gap-3">
             {[...Array(totalPages)].map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
-                className={`px-4 py-2 rounded-lg ${
+                className={`w-10 h-10 rounded-full font-semibold ${
                   currentPage === i + 1
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white border hover:bg-gray-100'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-white shadow hover:bg-gray-100'
                 }`}
               >
                 {i + 1}
@@ -205,116 +215,108 @@ const DoctorPatients = () => {
           </div>
         )}
 
-        {showPrescriptionModal && selectedPatient && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl p-8 animate-modal">
-              <h2 className="text-2xl font-bold mb-6">
-                {editingPrescription ? 'Edit' : 'Create'} Prescription for {selectedPatient.userId?.name}
-              </h2>
+        <AnimatePresence>
+          {showPrescriptionModal && selectedPatient && (
+            <motion.div
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-8"
+              >
+                <h2 className="text-2xl font-bold mb-6">
+                  Prescription for {selectedPatient.userId?.name}
+                </h2>
 
-              <form onSubmit={handleCreatePrescription} className="space-y-5">
+                <form onSubmit={handleCreatePrescription} className="space-y-5">
 
-                {error && (
-                  <div className="bg-red-100 text-red-700 px-4 py-2 rounded-lg">
-                    {error}
-                  </div>
-                )}
-
-                <input
-                  type="text"
-                  placeholder="Diagnosis"
-                  value={prescriptionData.diagnosis}
-                  onChange={e => setPrescriptionData({ ...prescriptionData, diagnosis: e.target.value })}
-                  className="w-full border rounded-lg px-4 py-2"
-                />
-
-                {prescriptionData.medications.map((med, index) => (
-                  <div key={index} className="border rounded-lg p-4 space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Medicine Name"
-                      value={med.name}
-                      onChange={e => handleMedicationChange(index, 'name', e.target.value)}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                    <div className="grid grid-cols-3 gap-3">
-                      <input
-                        type="text"
-                        placeholder="Dosage"
-                        value={med.dosage}
-                        onChange={e => handleMedicationChange(index, 'dosage', e.target.value)}
-                        className="border rounded px-3 py-2"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Frequency"
-                        value={med.frequency}
-                        onChange={e => handleMedicationChange(index, 'frequency', e.target.value)}
-                        className="border rounded px-3 py-2"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Duration"
-                        value={med.duration}
-                        onChange={e => handleMedicationChange(index, 'duration', e.target.value)}
-                        className="border rounded px-3 py-2"
-                      />
+                  {error && (
+                    <div className="bg-red-100 text-red-700 px-4 py-2 rounded-xl">
+                      {error}
                     </div>
-                    {prescriptionData.medications.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveMedication(index)}
-                        className="text-red-600 text-sm"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  )}
 
-                <button
-                  type="button"
-                  onClick={handleAddMedication}
-                  className="text-blue-600 font-medium"
-                >
-                  + Add Medication
-                </button>
+                  <input
+                    type="text"
+                    placeholder="Diagnosis"
+                    value={prescriptionData.diagnosis}
+                    onChange={e => setPrescriptionData({ ...prescriptionData, diagnosis: e.target.value })}
+                    className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500"
+                  />
 
-                <div className="flex justify-end gap-4 pt-4 border-t">
+                  {prescriptionData.medications.map((med, index) => (
+                    <div key={index} className="bg-gray-50 rounded-xl p-4 space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Medicine Name"
+                        value={med.name}
+                        onChange={e => handleMedicationChange(index, 'name', e.target.value)}
+                        className="w-full bg-white rounded-lg px-3 py-2 border"
+                      />
+                      <div className="grid grid-cols-3 gap-3">
+                        <input
+                          type="text"
+                          placeholder="Dosage"
+                          value={med.dosage}
+                          onChange={e => handleMedicationChange(index, 'dosage', e.target.value)}
+                          className="rounded-lg px-3 py-2 border"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Frequency"
+                          value={med.frequency}
+                          onChange={e => handleMedicationChange(index, 'frequency', e.target.value)}
+                          className="rounded-lg px-3 py-2 border"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Duration"
+                          value={med.duration}
+                          onChange={e => handleMedicationChange(index, 'duration', e.target.value)}
+                          className="rounded-lg px-3 py-2 border"
+                        />
+                      </div>
+                    </div>
+                  ))}
+
                   <button
                     type="button"
-                    onClick={() => setShowPrescriptionModal(false)}
-                    className="px-5 py-2 border rounded-lg"
+                    onClick={handleAddMedication}
+                    className="text-blue-600 font-semibold"
                   >
-                    Cancel
+                    + Add Medication
                   </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    {loading ? 'Saving...' : editingPrescription ? 'Update' : 'Create'}
-                  </button>
-                </div>
 
-              </form>
-            </div>
-          </div>
-        )}
+                  <div className="flex justify-end gap-4 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowPrescriptionModal(false)}
+                      className="px-6 py-2 rounded-xl border"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-6 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      {loading ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </div>
-
-      <style>
-        {`
-          @keyframes modal {
-            from { opacity:0; transform: scale(0.9); }
-            to { opacity:1; transform: scale(1); }
-          }
-          .animate-modal {
-            animation: modal 0.25s ease-out;
-          }
-        `}
-      </style>
     </div>
   )
 }
