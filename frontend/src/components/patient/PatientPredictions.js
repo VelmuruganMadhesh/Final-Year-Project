@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { FiPlus, FiX, FiActivity, FiClock } from 'react-icons/fi'
+import symptomsList from './symtoms'
 
 const PatientPredictions = () => {
   const [predictions, setPredictions] = useState([])
@@ -10,6 +11,7 @@ const PatientPredictions = () => {
   const [loading, setLoading] = useState(false)
   const [userInfo, setUserInfo] = useState(null)
   const [userProfile, setUserProfile] = useState(null)
+  const [suggestions, setSuggestions] = useState([])
 
   useEffect(() => {
     fetchPredictions()
@@ -47,29 +49,54 @@ const PatientPredictions = () => {
   }
 
   const handlePredict = async () => {
-    if (symptoms.length === 0) return
+  if (symptoms.length === 0) return
 
-    setLoading(true)
-    try {
-      const age = userInfo?.dateOfBirth
-        ? new Date().getFullYear() - new Date(userInfo.dateOfBirth).getFullYear()
-        : 30
+  setLoading(true)
 
-      const res = await axios.post('/api/ai/predict', {
-        symptoms,
-        age,
-        gender: userInfo?.gender || 'male',
-        medicalHistory: userProfile?.medicalHistory?.map(h => h.condition) || []
-      })
+  try {
+    const age = userInfo?.dateOfBirth
+      ? new Date().getFullYear() - new Date(userInfo.dateOfBirth).getFullYear()
+      : 30
 
-      setPrediction(res.data)
-      fetchPredictions()
-    } catch (error) {
-      alert('Prediction failed')
-    } finally {
-      setLoading(false)
-    }
+    const res = await axios.post('http://localhost:5001/predict', {
+      symptoms,
+      age,
+      gender: userInfo?.gender || 'male',
+      medicalHistory: userProfile?.medicalHistory?.map(h => h.condition) || []
+    })
+
+    setPrediction(res.data)
+
+  } catch (error) {
+    console.error(error)
+    alert("Prediction failed")
+  } finally {
+    setLoading(false)
+    setSymptoms([])
   }
+}
+const handleInputChange = (e) => {
+  const value = e.target.value
+  setSymptomInput(value)
+
+  if (value.length > 1) {
+    const filtered = symptomsList.filter(symptom =>
+      symptom.toLowerCase().includes(value.toLowerCase())
+    )
+    setSuggestions(filtered.slice(0, 5))
+  } else {
+    setSuggestions([])
+  }
+}
+
+const selectSuggestion = (symptom) => {
+  if (!symptoms.includes(symptom)) {
+    setSymptoms([...symptoms, symptom])
+  }
+
+  setSymptomInput("")
+  setSuggestions([])
+}
 
   const getRiskStyle = (level) => {
     if (level === 'high') return 'bg-red-100 text-red-700'
@@ -94,23 +121,46 @@ const PatientPredictions = () => {
         <div className="bg-white rounded-2xl shadow-md p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">Enter Symptoms</h2>
 
-          <div className="flex gap-3 mb-4">
-            <input
-              type="text"
-              value={symptomInput}
-              onChange={(e) => setSymptomInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSymptom())}
-              placeholder="Type symptom and press Enter"
-              className="flex-1 border rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
-            />
-            <button
-              onClick={addSymptom}
-              className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700 transition flex items-center gap-2"
-            >
-              <FiPlus />
-              Add
-            </button>
+         <div className="flex gap-3 mb-4 items-start">
+
+  <div className="flex-1 relative">
+
+    <input
+      type="text"
+      value={symptomInput}
+      onChange={handleInputChange}
+      onKeyDown={(e) =>
+        e.key === "Enter" && (e.preventDefault(), addSymptom())
+      }
+      placeholder="Type symptom and press Enter"
+      className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+    />
+
+    {suggestions.length > 0 && (
+      <div className="absolute left-0 right-0 mt-1 bg-white border rounded-xl shadow-md z-10 max-h-40 overflow-y-auto">
+        {suggestions.map((symptom, index) => (
+          <div
+            key={index}
+            onClick={() => selectSuggestion(symptom)}
+            className="px-4 py-2 cursor-pointer hover:bg-blue-100"
+          >
+            {symptom}
           </div>
+        ))}
+      </div>
+    )}
+
+  </div>
+
+  <button
+    onClick={addSymptom}
+    className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700 transition flex items-center gap-2"
+  >
+    <FiPlus />
+    Add
+  </button>
+
+</div>
 
           {symptoms.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">

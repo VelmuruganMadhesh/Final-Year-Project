@@ -6,7 +6,6 @@ const Doctor = require('../models/Doctor');
 const Patient = require('../models/Patient');
 const { protect, authorize } = require('../middleware/auth');
 
-// Validation middleware
 const validatePrescription = [
   body('patientId').notEmpty().withMessage('Patient ID is required'),
   body('diagnosis').notEmpty().trim().withMessage('Diagnosis is required'),
@@ -18,12 +17,8 @@ const validatePrescription = [
   body('prescriptionDate').optional().isISO8601().withMessage('Invalid date format')
 ];
 
-// @route   POST /api/prescriptions
-// @desc    Create a new prescription (Doctor only, for assigned patients only)
-// @access  Private/Doctor
 router.post('/', protect, authorize('doctor'), validatePrescription, async (req, res) => {
   try {
-    // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ 
@@ -34,38 +29,32 @@ router.post('/', protect, authorize('doctor'), validatePrescription, async (req,
 
     const { patientId, appointmentId, medications, diagnosis, treatmentNotes, additionalNotes, prescriptionDate, followUpDate } = req.body;
 
-    // Get doctor profile
     const doctor = await Doctor.findOne({ userId: req.user._id });
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor profile not found' });
     }
 
-    // Get patient and verify assignment
     const patient = await Patient.findById(patientId);
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
     }
 
-    // CRITICAL: Verify that the patient is assigned to this doctor
     if (!patient.assignedDoctor) {
       return res.status(403).json({ 
         message: 'Patient is not assigned to any doctor. Please assign the patient first.' 
       });
     }
 
-    // Compare ObjectIds directly (assignedDoctor is an ObjectId, not populated)
     if (patient.assignedDoctor.toString() !== doctor._id.toString()) {
       return res.status(403).json({ 
         message: 'You can only create prescriptions for patients assigned to you' 
       });
     }
 
-    // Validate medications array
     if (!medications || medications.length === 0) {
       return res.status(400).json({ message: 'At least one medication is required' });
     }
 
-    // Create prescription
     const prescription = await Prescription.create({
       patient: patientId,
       doctor: doctor._id,
@@ -99,9 +88,6 @@ router.post('/', protect, authorize('doctor'), validatePrescription, async (req,
   }
 });
 
-// @route   GET /api/prescriptions
-// @desc    Get all prescriptions (filtered by role)
-// @access  Private
 router.get('/', protect, async (req, res) => {
   try {
     let query = {};
@@ -139,15 +125,10 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/prescriptions/patient/:patientId
-// @desc    Get all prescriptions for a specific patient (Doctor can view assigned patients only)
-// @access  Private
-// NOTE: This route must come BEFORE /:id route to avoid route matching conflicts
 router.get('/patient/:patientId', protect, async (req, res) => {
   try {
     const { patientId } = req.params;
 
-    // Authorization check
     if (req.user.role === 'patient') {
       const patient = await Patient.findOne({ userId: req.user._id });
       if (!patient || patient._id.toString() !== patientId) {
@@ -186,9 +167,6 @@ router.get('/patient/:patientId', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/prescriptions/:id
-// @desc    Get prescription by ID (with authorization check)
-// @access  Private
 router.get('/:id', protect, async (req, res) => {
   try {
     const prescription = await Prescription.findById(req.params.id)
@@ -206,7 +184,6 @@ router.get('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Prescription not found' });
     }
 
-    // Authorization check
     if (req.user.role === 'patient') {
       const patient = await Patient.findOne({ userId: req.user._id });
       if (!patient || patient._id.toString() !== prescription.patient._id.toString()) {
@@ -226,15 +203,11 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/prescriptions/:id
-// @desc    Update prescription (Doctor only, for assigned patients only)
-// @access  Private/Doctor
 router.put('/:id', protect, authorize('doctor'), [
   body('diagnosis').optional().notEmpty().trim().withMessage('Diagnosis cannot be empty'),
   body('medications').optional().isArray({ min: 1 }).withMessage('At least one medication is required')
 ], async (req, res) => {
   try {
-    // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ 
@@ -249,20 +222,17 @@ router.put('/:id', protect, authorize('doctor'), [
       return res.status(404).json({ message: 'Prescription not found' });
     }
 
-    // Get doctor profile
     const doctor = await Doctor.findOne({ userId: req.user._id });
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor profile not found' });
     }
 
-    // Verify ownership: Only the doctor who created the prescription can update it
     if (prescription.doctor.toString() !== doctor._id.toString()) {
       return res.status(403).json({ 
         message: 'You can only update prescriptions created by you' 
       });
     }
 
-    // Verify patient is still assigned to this doctor
     const patient = await Patient.findById(prescription.patient);
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
@@ -273,7 +243,6 @@ router.put('/:id', protect, authorize('doctor'), [
       });
     }
 
-    // Update fields
     const { medications, diagnosis, treatmentNotes, additionalNotes, prescriptionDate, followUpDate } = req.body;
     
     if (medications) {

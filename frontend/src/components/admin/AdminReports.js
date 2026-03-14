@@ -45,7 +45,6 @@ const AdminReports = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-sky-50 p-6">
 
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-sky-700">
           Hospital Analytics Dashboard
@@ -55,7 +54,6 @@ const AdminReports = () => {
         </p>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
 
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-sky-100 hover:shadow-xl transition">
@@ -116,7 +114,6 @@ const AdminReports = () => {
 
       </div>
 
-      {/* Revenue Chart */}
       <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-sky-100 p-8">
 
         <h3 className="text-2xl font-semibold text-sky-700 mb-6">
@@ -141,7 +138,6 @@ const AdminReports = () => {
         </ResponsiveContainer>
       </div>
 
-      {/* Optional Bar Chart */}
       <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-8 mt-10">
 
         <h3 className="text-2xl font-semibold text-sky-700 mb-6">

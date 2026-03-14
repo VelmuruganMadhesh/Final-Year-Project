@@ -74,7 +74,6 @@ const PatientAppointments = () => {
     setSymptomInput("");
   };
 
-  // SEARCH + FILTER
   let filtered = appointments.filter((apt) =>
     apt.doctor?.userId?.name
       ?.toLowerCase()
@@ -101,7 +100,6 @@ const PatientAppointments = () => {
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
 
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
 
         <h1 className="text-3xl font-bold text-gray-800">
@@ -110,7 +108,7 @@ const PatientAppointments = () => {
 
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2 rounded-lg shadow hover:scale-105 transition"
+          className="flex items-center gap-2  bg-gradient-to-r from-blue-600 to-blue-400 text-white px-5 py-2 rounded-lg shadow hover:scale-105 transition"
         >
           <FiPlus />
           Book Appointment
@@ -118,7 +116,6 @@ const PatientAppointments = () => {
 
       </div>
 
-      {/* SEARCH + FILTER */}
       <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4">
 
         <div className="flex items-center border px-3 py-2 rounded-lg w-72">
@@ -142,8 +139,6 @@ const PatientAppointments = () => {
         </select>
 
       </div>
-
-      {/* APPOINTMENT CARDS */}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 
@@ -181,8 +176,6 @@ const PatientAppointments = () => {
 
             </div>
 
-            {/* AI Prediction */}
-
             {apt.aiPrediction && (
 
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
@@ -210,8 +203,6 @@ const PatientAppointments = () => {
         ))}
 
       </div>
-
-      {/* MODAL */}
 
       {showModal && (
 
@@ -287,8 +278,6 @@ const PatientAppointments = () => {
                 </button>
 
               </div>
-
-              {/* symptoms */}
 
               <div className="flex flex-wrap gap-2">
 

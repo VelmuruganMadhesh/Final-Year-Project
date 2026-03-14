@@ -30,7 +30,6 @@ const PatientPrescriptions = () => {
   const handleDownload = (prescription) => {
     setLoading(true);
     try {
-      // Create a printable/downloadable version
       const content = generatePrescriptionContent(prescription);
       const blob = new Blob([content], { type: 'text/html' });
       const url = window.URL.createObjectURL(blob);

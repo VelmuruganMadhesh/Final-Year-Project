@@ -72,7 +72,7 @@ const AdminDashboard = () => {
     <div className="space-y-8">
 
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-6 rounded-xl shadow-lg text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-400 p-6 rounded-xl shadow-lg text-white">
         <h1 className="text-3xl font-bold">Hospital Admin Dashboard</h1>
         <p className="opacity-80 mt-1">
           Manage hospital operations, doctors and patients

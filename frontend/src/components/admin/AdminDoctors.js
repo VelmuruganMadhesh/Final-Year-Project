@@ -19,14 +19,9 @@ const AdminDoctors = () => {
 
   useEffect(() => {
     fetchDoctors();
+    fetchUsers();
+    fetchDepartments();
   }, []);
-
-  useEffect(() => {
-    if (doctors.length >= 0) {
-      fetchUsers();
-      fetchDepartments();
-    }
-  }, [doctors]);
 
   const fetchDoctors = async () => {
     try {
@@ -183,7 +178,7 @@ const AdminDoctors = () => {
                 className="w-full border border-sky-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-sky-400 outline-none"
                 required
               >
-                <option value="">Select User</option>
+                <option value="">Select Doctor</option>
                 {users.map(user => (
                   <option key={user._id} value={user._id}>
                     {user.name} ({user.email})
